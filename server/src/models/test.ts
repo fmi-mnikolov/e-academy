@@ -28,9 +28,9 @@ const TestDB = mongoose.model("Test", TestSchema);
 export default TestDB;
 
 export interface Test {
-    _id: string,
-    name: String,
-    lessonId: String,
-    question: String,
-    answer: String
+    _id?: string,
+    name: string,
+    lessonId: string,
+    question: string,
+    answer: string
 }

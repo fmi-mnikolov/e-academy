@@ -10,6 +10,11 @@ const LessonSchema = new mongoose.Schema(
         subjectId: {
             type: String,
         },
+        content: {
+            type: String,
+            min: 20,
+            required: true
+        },
         tests: {
             type: Array<String>,
             default: []
@@ -25,8 +30,9 @@ const LessonDB = mongoose.model("Lesson", LessonSchema);
 export default LessonDB;
 
 export interface Lesson {
-    _id: String,
-    name: String,
-    subjectId: String,
-    Tests: String[]
+    _id?: string,
+    name: string,
+    content: string,
+    subjectId: string,
+    tests: string[]
 }

@@ -4,6 +4,9 @@ import * as jwt from "jsonwebtoken";
 import * as redis from "redis";
 import UserDB, { User } from '../models/user';
 import bcrypt from 'bcrypt';
+import upload from '../storage/multer';
+import multer from 'multer';
+import { authenticate, authenticateAdmin } from '../middleware/auth';
 dotenv.config();
 const router = express.Router();
 
@@ -12,85 +15,143 @@ const redisClient = redis.createClient({
 });
 redisClient.connect();
 
-router.post('/token', (req, res) => {
-    try {
-        let token = req.body.token;
-        if (token == null) return res.sendStatus(401);
+router.post('/token', authenticate, async (req, res) => {
+    let token: string = req.body.token;
+    if (token == null) return res.status(400).json({ message: "No authentication token found" });
 
-        jwt.verify(token, process.env.REFRESH_TOKEN_SECRET as string, (err, user) => {
-            if (err) return res.sendStatus(403);
-            let tempUser = user as User;
-            let resUser: User = { ...user } as User;
-            redisClient.GET(resUser.username as string).then(dbtoken => {
-                if (token !== dbtoken) return res.sendStatus(403);
-                const accessToken: string = generateAccessToken(user)
-                res.json({ accessToken: accessToken })
-            }).catch(err => {
-                return res.sendStatus(403);
-            })
-        })
+    let user: User;
+
+    try {
+        let decoded = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET as string);
+        user = decoded as User;
+    } catch {
+        try {
+            let decoded = jwt.verify(token, process.env.ADMIN_TOKEN_SECRET as string);
+            user = decoded as User;
+        } catch {
+            return res.status(401).json({ message: "Not a valid refresh token" });
+        }
+    }
+
+    try {
+        let redisToken: string = await redisClient.GET(user.username) as string;
+
+        if (redisToken !== token) {
+            return res.status(401).json({ message: "This refresh token does not belong to this user" });
+        }
+
+        let newToken: string = generateAccessToken(user);
+        return res.status(201).json({ accessToken: newToken });
+
     } catch (error) {
-        res.status(400).json({ error: "Incorrect credentials" });
+        return res.status(404).json({ message: "This user has not been logged in. Please login first" });
     }
 })
 
-router.delete('/logout', async (req, res) => {
-    try {
-        let token = req.body.token;
-        if (token == null) return res.sendStatus(401);
+router.delete('/logout', authenticate, async (req, res) => {
+    let token: string = req.body.token;
+    if (!token) return res.status(400).json({ message: "No token found. Please provide a valid Refresh token." });
 
-        const user: User = await jwt.verify(token, process.env.REFRESH_TOKEN_SECRET as string) as User;
-        if (!user) return res.sendStatus(403);
-        console.log(user);
-        const dbtoken = await redisClient.GET(user.username) as string;
-        if (token !== dbtoken) return res.sendStatus(403);
-        await redisClient.DEL(user.username as string);
-        return res.sendStatus(204);
-    } catch (error) {
-        res.status(400).json({ error: "Incorrect credentials" });
+    let user: User;
+
+    try {
+        let decoded = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET as string);
+        user = decoded as User;
+    } catch {
+        try {
+            let decoded = jwt.verify(token, process.env.ADMIN_TOKEN_SECRET as string);
+            user = decoded as User
+        } catch {
+            return res.status(401).json({ message: "Not a valid token" });
+        }
+    }
+
+    console.log(4);
+    try {
+        let redisToken: string = await redisClient.GET(user.username) as string;
+
+        if (token !== redisToken) return res.status(401).json({ message: "This token does not exist for the user" });
+        await redisClient.DEL(user.username);
+        return res.status(200).json({ message: "User logged out successfully" });
+    } catch {
+        return res.status(404).json({ message: "No such user has been logged in" });
     }
 })
 
 router.post("/login", async (req: Request, res: Response) => {
+    const {
+        username,
+        password
+    } = req.body;
+
+    if (!username || !password) {
+        return res.status(400).json({ message: "Username or Password missing." });
+    }
+
+    let user: User;
+
+
+
     try {
-        const {
-            username,
-            password,
-        } = req.body;
-
-        const user = await UserDB.findOne({ username: username });
-        if (!user) {
-            return res.status(400).json({ error: "No user found" });
+        let queryUser = await UserDB.findOne({ username: username });
+        if (!queryUser) {
+            return res.status(404).json({ message: "User not found" });
         }
-        const isMatch = await bcrypt.compare(password, user.password);
+        user = queryUser?.toObject() as User;
+    } catch {
+        return res.status(404).json({ message: "User not found" });
+    }
 
+    try {
+        let isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
-            return res.status(400).json({ error: "Unnauthorized" });
+            return res.status(401).json({ message: "Incorrect password for user" });
         }
-        const accessToken = generateAccessToken(user.toObject() as User);
-        const refreshToken = jwt.sign(user.toObject(), process.env.REFRESH_TOKEN_SECRET as string);
-        await redisClient.setEx(username, 2 * 60 * 60, refreshToken);
-        res.json({
+    } catch {
+        return res.status(401).json({ message: "Incorrect password for user" });
+    }
+
+    try {
+        let accessToken: string = generateAccessToken(user);
+        let secret: string = user.role === 'admin' ? process.env.ADMIN_TOKEN_SECRET as string : process.env.REFRESH_TOKEN_SECRET as string;
+        let refreshToken: string = jwt.sign(user, secret);
+
+        await redisClient.setEx(user.username, Number(process.env.REFRESH_EXPIRATION), refreshToken);
+        res.status(201).json({
+            message: "Successfully logged in",
             accessToken: accessToken,
             refreshToken: refreshToken
         });
-    } catch (error) {
-        res.status(500).json({ error: error });
+    } catch {
+        res.status(500).json({ message: "An error occured while generating token. Try again..." });
     }
 });
 
-router.post("/register", async (req: Request, res: Response) => {
+router.post("/register", upload.fields([{ name: "picture" }]), async (req: Request, res: Response) => {
+    let parsed: any;
     try {
-        const {
-            username,
-            email,
-            password,
-            picturePath,
-        } = req.body;
+        parsed = JSON.parse(req.body.json);
+    } catch {
+        return res.status(500).json({ message: "There was a problem with parsing sent data" });
+    }
 
+    const {
+        username,
+        email,
+        password,
+        picturePath,
+    } = parsed;
+
+    if (!(username && email && password && picturePath)) {
+        return res.status(400).json({ message: "All fields are required. Try again..." });
+    }
+
+    let user: User;
+
+    try {
         const salt = await bcrypt.genSalt();
         const hash = await bcrypt.hash(password, salt);
-        const user: User = {
+        user = {
             username: username,
             email: email,
             password: hash,
@@ -101,33 +162,121 @@ router.post("/register", async (req: Request, res: Response) => {
             completedTests: [],
             subjects: []
         } as User;
+    } catch {
+        return res.status(500).json({ message: "Error hashing password. Try again..." });
+    }
 
-        const userDB = new UserDB({
-            username: username,
-            email: email,
-            password: hash,
-            picturePath: picturePath,
-            role: "user",
+    let userDB;
+    try {
+        userDB = new UserDB({
+            username: user.username,
+            email: user.email,
+            password: user.password,
+            picturePath: user.picturePath,
+            role: user.role,
             completedLessons: [],
             completedSubjects: [],
             completedTests: [],
             subjects: []
         });
         await userDB.save();
-        const accessToken = generateAccessToken(user);
-        let refreshToken = jwt.sign(userDB.toObject(), process.env.REFRESH_TOKEN_SECRET as string);
-        redisClient.setEx(username, 2 * 60 * 60, refreshToken);
-        res.json({
+    } catch {
+        return res.status(500).json({ message: "Error occured while saving new user. Try again..." });
+    }
+
+    try {
+        let accessToken: string = generateAccessToken(user);
+        let secret: string = process.env.REFRESH_TOKEN_SECRET as string;
+        let refreshToken: string = jwt.sign(user, secret);
+
+        await redisClient.setEx(user.username, Number(process.env.REFRESH_EXPIRATION), refreshToken);
+        res.status(201).json({
+            message: "Successfully registered user",
             accessToken: accessToken,
             refreshToken: refreshToken,
-            user: user
+            user: userDB.toObject() as User
         });
-    } catch (error) {
-        res.status(400).json({ error: "Unnauthorize" });
+    } catch {
+        res.status(500).json({ message: "An error occured while generating token. Try again..." });
     }
 });
 
-function generateAccessToken(user: User) {
+router.post("/create", authenticateAdmin, upload.fields([{ name: "picture" }]), async (req: Request, res: Response) => {
+    let parsed: any;
+    try {
+        parsed = JSON.parse(req.body.json);
+    } catch {
+        return res.status(500).json({ message: "There was a problem with parsing sent data" });
+    }
+
+    const {
+        username,
+        email,
+        password,
+        role,
+        picturePath,
+    } = parsed;
+
+    if (!(username && email && password && picturePath && role) && (role !== 'admin' || role !== 'user')) {
+        return res.status(400).json({ message: "All fields are required. Try again..." });
+    }
+
+    let user: User;
+
+    try {
+        const salt = await bcrypt.genSalt();
+        const hash = await bcrypt.hash(password, salt);
+        user = {
+            username: username,
+            email: email,
+            password: hash,
+            picturePath: picturePath,
+            role: role,
+            completedLessons: [],
+            completedSubjects: [],
+            completedTests: [],
+            subjects: []
+        } as User;
+    } catch {
+        return res.status(500).json({ message: "Error hashing password. Try again..." });
+    }
+
+    let userDB;
+    try {
+        userDB = new UserDB({
+            username: user.username,
+            email: user.email,
+            password: user.password,
+            picturePath: user.picturePath,
+            role: user.role,
+            completedLessons: [],
+            completedSubjects: [],
+            completedTests: [],
+            subjects: []
+        });
+        await userDB.save();
+    } catch {
+        return res.status(500).json({ message: "Error occured while saving new user. Try again..." });
+    }
+
+    try {
+        let accessToken: string = generateAccessToken(user);
+        let secret: string = user.role === 'admin' ? process.env.ADMIN_TOKEN_SECRET as string : process.env.REFRESH_TOKEN_SECRET as string;
+        let refreshToken: string = jwt.sign(user, secret);
+
+        await redisClient.setEx(user.username, Number(process.env.REFRESH_EXPIRATION), refreshToken);
+        res.status(201).json({
+            message: "Successfully registered user",
+            accessToken: accessToken,
+            refreshToken: refreshToken,
+            user: userDB.toObject() as User
+        });
+    } catch {
+        res.status(500).json({ message: "An error occured while generating token. Try again..." });
+    }
+});
+
+export const generateAccessToken = (user: User) => {
     let token: string = process.env.ACCESS_TOKEN_SECRET as string;
     let options = {
         expiresIn: process.env.TOKEN_EXPIRATION
@@ -135,4 +284,19 @@ function generateAccessToken(user: User) {
     return jwt.sign({ user }, token, options);
 }
 
+export const extract = (req: Request) => {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    if (!token) throw new Error();
+
+    let user: User;
+
+    try {
+        let decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET as string);
+        user = decoded as User;
+        return user;
+    } catch {
+        throw new Error();
+    }
+}
 export default router;

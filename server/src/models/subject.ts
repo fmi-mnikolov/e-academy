@@ -10,6 +10,9 @@ const SubjectSchema = new mongoose.Schema(
         lessons: {
             type: Array<String>,
             default: []
+        },
+        picture: {
+            type: String
         }
     }
 );
@@ -19,7 +22,8 @@ const SubjectDB = mongoose.model("Subject", SubjectSchema);
 export default SubjectDB;
 
 export interface Subject {
-    _id: String,
-    name: String,
-    lessons: String[]
+    _id?: string,
+    name: string,
+    lessons: string[],
+    picture: string
 }

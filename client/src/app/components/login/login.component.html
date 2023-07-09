@@ -1,0 +1,13 @@
+<div class="login-window">
+    <form [formGroup]="loginForm" (submit)="onSubmit()">
+        <div>
+            <label for="username">Username</label>
+            <input type="text" formControlName="username">
+        </div>
+        <div>
+            <label for="password">Password</label>
+            <input type="text" formControlName="password">
+        </div>
+        <button tpye="submit">Log In</button>
+    </form>
+</div>

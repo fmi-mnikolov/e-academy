@@ -18,7 +18,7 @@ router.get("/", authenticateAdmin, async (req, res) => {
     }
 })
 
-router.get("/:subjectId", authenticate, async (req, res) => {
+router.get("/by-subject/:subjectId", authenticate, async (req, res) => {
     try {
         const { subjectId } = req.params;
         let subject = await SubjectDB.findOne({ _id: subjectId });
@@ -116,7 +116,7 @@ router.delete("/", authenticateAdmin, async (req, res) => {
     }
 });
 
-router.delete("/delete/:subjectId", authenticateAdmin, async (req, res) => {
+router.delete("/by-subject/:subjectId", authenticateAdmin, async (req, res) => {
     try {
         const { subjectId } = req.params;
         let subject = await SubjectDB.findOne({ _id: subjectId });
@@ -146,7 +146,7 @@ router.delete("/delete/:subjectId", authenticateAdmin, async (req, res) => {
     }
 });
 
-router.delete("/delete/:lessonId", authenticateAdmin, async (req, res) => {
+router.delete("/:lessonId", authenticateAdmin, async (req, res) => {
     try {
         const { lessonId } = req.params;
         const { subjectId } = req.body;

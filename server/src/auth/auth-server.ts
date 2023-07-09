@@ -49,7 +49,8 @@ router.post('/token', authenticate, async (req, res) => {
 })
 
 router.delete('/logout', authenticate, async (req, res) => {
-    let token: string = req.body.token;
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
     if (!token) return res.status(400).json({ message: "No token found. Please provide a valid Refresh token." });
 
     let user: User;

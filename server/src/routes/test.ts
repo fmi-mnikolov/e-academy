@@ -17,7 +17,7 @@ router.get("/", authenticateAdmin, async (req, res) => {
     }
 })
 
-router.get("/:lessonId", authenticate, async (req, res) => {
+router.get("/by-lesson/:lessonId", authenticate, async (req, res) => {
     try {
         const { lessonId } = req.params;
         let lesson = await LessonDB.findOne({ _id: lessonId });
@@ -121,7 +121,7 @@ router.delete("/", authenticateAdmin, async (req, res) => {
     }
 })
 
-router.delete("/:lessonId", async (req, res) => {
+router.delete("/by-lesson/:lessonId", async (req, res) => {
     try {
         const { lessonId } = req.params;
         let lesson = await LessonDB.findOne({ _id: lessonId });

@@ -302,6 +302,94 @@ router.post('/subjects/remove/:id', authenticate, async (req: Request, res: Resp
     });
 })
 
+router.post('/completed/subjects/add/:id', authenticate, async (req: Request, res: Response) => {
+    let user: User;
+    try {
+        user = extract(req);
+    } catch (error) {
+        res.status(404).json({ message: "No user found" });
+    }
+
+    let id: string = '';
+    try {
+        const { parsed } = req.params;
+        id = parsed;
+    } catch {
+        return res.status(400).json({ message: "No lesson id found in request" });
+    }
+    let dbSubject;
+    try {
+        dbSubject = await SubjectDB.findById(id);
+    } catch {
+        return res.status(404).json({ message: "No such lesson exists" });
+    }
+
+    let dbUser;
+
+    try {
+        dbUser = await UserDB.findById(user!._id);
+    } catch {
+        res.status(404).json({ message: "No such user exists" });
+    }
+
+    let currentSubjects: string[] = dbUser?.toObject().completedSubjects;
+    currentSubjects = currentSubjects.concat(id);
+    try {
+        await UserDB.updateOne({ _id: user!._id }, { completedSUbjects: currentSubjects });
+    } catch {
+        return res.status(500).json({ message: "Error in executing request" });
+    }
+
+    return res.status(200).json({
+        ...dbUser.toObject(),
+        completedSubjects: currentSubjects
+    });
+})
+
+router.post('/completed/subjects/remove/:id', authenticate, async (req: Request, res: Response) => {
+    let user: User;
+    try {
+        user = extract(req);
+    } catch (error) {
+        res.status(404).json({ message: "No user found" });
+    }
+
+    let id: string = '';
+    try {
+        const { parsed } = req.params;
+        id = parsed;
+    } catch {
+        return res.status(400).json({ message: "No lesson id found in request" });
+    }
+    let dbSubject;
+    try {
+        dbSubject = await SubjectDB.findById(id);
+    } catch {
+        return res.status(404).json({ message: "No such lesson exists" });
+    }
+
+    let dbUser;
+
+    try {
+        dbUser = await UserDB.findById(user!._id);
+    } catch {
+        res.status(404).json({ message: "No such user exists" });
+    }
+
+    let currentSubjects: string[] = dbUser?.toObject().completedSubjects;
+    currentSubjects = currentSubjects.filter(s => s !== id);
+    try {
+        await UserDB.updateOne({ _id: user!._id }, { completedSUbjects: currentSubjects });
+    } catch {
+        return res.status(500).json({ message: "Error in executing request" });
+    }
+
+    return res.status(200).json({
+        ...dbUser.toObject(),
+        completedSubjects: currentSubjects
+    });
+})
+
 router.post('/completed/lessons/add/:id', authenticate, async (req: Request, res: Response) => {
     let user: User;
     try {

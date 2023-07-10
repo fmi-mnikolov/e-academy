@@ -1,0 +1,9 @@
+<div class="subject-window">
+    <div>{{subject.name}}</div>
+    <div>
+        <app-lesson *ngFor="let lesson of lessons | async" [lesson]="lesson"></app-lesson>
+    </div>
+    <div>
+        <img [src]="picture">
+    </div>
+</div>

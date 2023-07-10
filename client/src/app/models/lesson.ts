@@ -1,12 +1,12 @@
 export class Lesson {
     name: string = ""
-    content: Component[] = []
+    content: ContentComponent[] = []
     tests: string[] = []
     subjectId: string = '';
     _id?: string = "";
 }
 
-export class Component {
+export class ContentComponent {
     type: string = ""
     value: string = ""
 }

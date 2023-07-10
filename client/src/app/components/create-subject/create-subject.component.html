@@ -1,1 +1,10 @@
-<p>create-subject works!</p>
+<div>
+    <form [formGroup]="subjectForm" (submit)="onSubmit()">
+        <div>
+            <label for="name">Name</label>
+            <input type="text" formControlName="name">
+        </div>
+        <button type="submit">Create</button>
+    </form>
+
+</div>

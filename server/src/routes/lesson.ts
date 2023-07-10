@@ -1,9 +1,10 @@
-import LessonDB, { Lesson } from './../models/lesson';
+import LessonDB, { Component, Lesson } from './../models/lesson';
 import express from 'express';
 import { authenticate, authenticateAdmin } from '../middleware/auth';
 import SubjectDB, { Subject } from '../models/subject';
 import TestDB from '../models/test';
-import upload from '../storage/multer';
+import { uploadLessonPictures } from '../storage/multer';
+import path from 'path';
 
 const router = express.Router();
 
@@ -58,7 +59,7 @@ router.get("/:lessonId", authenticate, async (req, res) => {
 })
 
 //POST
-router.post("/:subjectId", authenticateAdmin, upload.array("files", 100), async (req, res) => {
+router.post("/:subjectId", authenticateAdmin, uploadLessonPictures.array("files", 100), async (req, res) => {
     try {
         const { subjectId } = req.params;
         const { name, content } = req.body;
@@ -67,11 +68,19 @@ router.post("/:subjectId", authenticateAdmin, upload.array("files", 100), async 
             return res.status(400).json({ message: "Subject not found" });
         }
 
+        let newContent = JSON.stringify((JSON.parse(content) as Component[]).map(o => {
+            if (o.type === "IMAGE" || o.type === "VIDEO") {
+                o.value = `${name}_${path.basename(o.value)}`;
+                return o;
+            }
+
+            return o;
+        }));
         const newLesson = new LessonDB({
             name: name,
             tests: [],
             subjectId: subjectId,
-            content: content
+            content: newContent
         });
 
         await newLesson.save();
@@ -88,14 +97,25 @@ router.post("/:subjectId", authenticateAdmin, upload.array("files", 100), async 
 })
 
 //PUT
-router.put("/:id", authenticateAdmin, upload.array("files", 100), async (req, res) => {
+router.put("/:id", authenticateAdmin, uploadLessonPictures.array("files", 100), async (req, res) => {
     try {
         const { id } = req.params;
         const { name, content } = req.body;
 
+        let newContent = JSON.stringify((JSON.parse(content) as Component[]).map(o => {
+            if (o.type === "IMAGE" || o.type === "VIDEO") {
+                if (!o.value.includes('/') && !o.value.includes('\\')) {
+                    return o;
+                }
+                o.value = `${name}_${path.basename(o.value)}`;
+                return o;
+            }
+
+            return o;
+        }));
         await LessonDB.updateOne({ _id: id }, {
             name: name,
-            content: content
+            content: newContent
         });
 
         const lesson: Lesson = (await LessonDB.findById(id))?.toObject() as Lesson;

@@ -10,7 +10,7 @@ export class User {
     email: string = "";
     role: string = "";
     picturePath: string = ""
-    _id: string = "";
+    _id?: string | undefined = "";
     subjects: string[] = [];
     completedSubjects: string[] = [];
     completedLessons: string[] = [];

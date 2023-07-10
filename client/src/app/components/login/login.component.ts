@@ -22,4 +22,11 @@ export class LoginComponent {
   onSubmit() {
     this.auth.login(this.loginForm.get('username')!.value, this.loginForm.get('password')!.value);
   }
+
+  get username() {
+    return this.loginForm.get('username')!;
+  }
+  get password() {
+    return this.loginForm.get('password')!;
+  }
 }

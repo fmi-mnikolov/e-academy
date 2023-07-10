@@ -1,8 +1,9 @@
-import { Observable } from 'rxjs';
+import { Observable, map } from 'rxjs';
 import { Injectable } from '@angular/core';
 import { StateHandler } from '../state-management/state.handler';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { State, User } from '../models/state';
+import { Store } from '@ngrx/store';
 
 @Injectable({
     providedIn: 'root'
@@ -11,7 +12,7 @@ export class AuthService {
 
     url: string = "http://localhost:5001/auth";
 
-    constructor(private store: StateHandler, private client: HttpClient) {
+    constructor(private stateHandler: StateHandler, private client: HttpClient, private store: Store<State>) {
     }
 
     async login(username: string, password: string) {
@@ -21,48 +22,55 @@ export class AuthService {
                 return;
             }
 
-            this.store.login(response);
+            this.stateHandler.login(response);
         });
     }
 
-    register(user: User) {
-        this.client.post(`${this.url}/register`,
-            {
-                username: user.username,
-                password: user.password,
-                email: user.email,
-                picturePath: user.picturePath,
+    register(user: User, file: File) {
+        const headers = new HttpHeaders({
+            'Content-Type': 'multipart/form-data',
+        })
+        let data = new FormData();
+        data.append("json", JSON.stringify({
+            username: user.username,
+            password: user.password,
+            email: user.email,
+            picturePath: user.picturePath,
 
-            }).subscribe(state => {
-                const response: State = state as State;
-                if (!(response && response.user && response.accessToken && response.refreshToken)) {
-                    return;
-                }
+        }));
+        data.append("picture", file);
 
-                this.store.login(response);
-            });
+        this.client.post(`${this.url}/register`, data).subscribe(state => {
+            const response: State = state as State;
+            if (!(response && response.user && response.accessToken && response.refreshToken)) {
+                return;
+            }
+
+            this.stateHandler.login(response);
+        });
     }
 
     logout() {
-        this.store.state$.subscribe(d => {
-            let token = d.accessToken;
+        this.store.pipe(map(data => {
+            let state = (data as { state: State }).state;
+            console.log(state);
             const headers = new HttpHeaders({
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
+                'Authorization': `Bearer ${state.accessToken}`
             });
-            this.client.post(`${this.url}/logout`, {}, { headers: headers }).subscribe(state => {
-                const response: State = state as State;
-                if (!(response && response.user && response.accessToken && response.refreshToken)) {
-                    return;
-                }
+            return this.client.delete(`${this.url}/logout`, { headers: headers })
+        })).subscribe(state => {
+            const response: State = state as State;
+            if (!(response && response.user && response.accessToken && response.refreshToken)) {
+                return;
+            }
 
-                this.store.login(response);
-            });
+            this.stateHandler.logout();
         });
     }
 
     refreshToken() {
-        this.store.state$.subscribe(d => {
+        this.stateHandler.state$.subscribe(d => {
             let user: User = d.user!;
             let token = d.refreshToken;
             const headers = new HttpHeaders({
@@ -76,31 +84,35 @@ export class AuthService {
                     return;
                 }
 
-                this.store.login(response);
+                this.stateHandler.login(response);
             });
         });
     }
 
-    createUser(user: User) {
-        this.store.state$.subscribe(d => {
-            let token = d.accessToken;
-            const headers = new HttpHeaders({
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            });
-            this.client.post(`${this.url}/create`, {
-                username: user.username,
-                password: user.password,
-                role: user.role,
-                email: user.email,
-                picturePath: user.picturePath,
+    createUser(user: User, file: File) {
+        let token;
+        this.store.select("accessToken").subscribe(s => token = s);
+        const headers = new HttpHeaders({
+            'Content-Type': 'multipart/form-data',
+            'Authorization': `Bearer ${token}`
+        })
+        let data = new FormData();
+        data.append("json", JSON.stringify({
+            username: user.username,
+            password: user.password,
+            email: user.email,
+            picturePath: user.picturePath,
 
-            }, { headers: headers }).subscribe(state => {
-                const response: State = state as State;
-                if (!(response && response.accessToken && response.refreshToken)) {
-                    return;
-                }
-            });
+        }));
+        data.append("picture", file);
+
+        this.client.post(`${this.url}/create`, data).subscribe(state => {
+            const response: State = state as State;
+            if (!(response && response.user && response.accessToken && response.refreshToken)) {
+                return;
+            }
+
+            this.stateHandler.login(response);
         });
     }
 }

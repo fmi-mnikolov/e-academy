@@ -1,1 +1,12 @@
-<p>navbar works!</p>
+<div class="nav-bar-window">
+    <div>
+        <a routerLink="/login" *ngIf="!isLoggedIn()">Login</a>
+        <a routerLink="/register" *ngIf="!isLoggedIn()">Register</a>
+        <a routerLink="/users/create" *ngIf="isLoggedIn() && isAdmin()">Create User</a>
+        <a routerLink="/subjects/create" *ngIf="isLoggedIn() && isAdmin()">Create Subject</a>
+        <a routerLink="/lessons/create" *ngIf="isLoggedIn() && isAdmin()">Create Lesson</a>
+        <a routerLink="/tests/create" *ngIf="isLoggedIn() && isAdmin()">Create Test</a>
+        <a routerLink="/subjects/get" *ngIf="isLoggedIn() && isAdmin()">Get Subjects</a>
+        <a routerLink="/logout" *ngIf="isLoggedIn()">Logout</a>
+    </div>
+</div>

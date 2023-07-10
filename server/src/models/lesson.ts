@@ -36,3 +36,8 @@ export interface Lesson {
     subjectId: string,
     tests: string[]
 }
+
+export class Component {
+    type: string = ""
+    value: string = ""
+}

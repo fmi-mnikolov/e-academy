@@ -1,1 +1,25 @@
-<p>create-test works!</p>
+<div class="register-window">
+    <form [formGroup]="testForm" (submit)="onSubmit()">
+        <div>
+            <label for="name">Name</label>
+            <input type="text" formControlName="name">
+        </div>
+        <div>
+            <label for="question">Question</label>
+            <input type="question" formControlName="question">
+        </div>
+        <div>
+            <label for="answer">Password</label>
+            <input type="answer" formControlName="answer">
+        </div>
+        <div>
+            <label for="lessonId">LessonId</label>
+            <select formControlName="lessonId">
+                <option value="lesson._id" *ngFor="let lesson of lessons | async">{{lesson._id}}</option>
+            </select>
+        </div>
+        <div>
+            <button type="submit">Create Test</button>
+        </div>
+    </form>
+</div>

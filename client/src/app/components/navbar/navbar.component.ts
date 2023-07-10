@@ -1,4 +1,5 @@
 import { Component } from '@angular/core';
+import { StateHandler } from 'src/app/state-management/state.handler';
 
 @Component({
   selector: 'app-navbar',
@@ -7,4 +8,23 @@ import { Component } from '@angular/core';
 })
 export class NavbarComponent {
 
+  constructor(private state: StateHandler) { }
+
+  isLoggedIn(): boolean {
+    let res: boolean = false;
+    this.state.state$.subscribe(state => {
+      res = state.user ? true : false;
+    })
+
+    return res;
+  }
+
+  isAdmin(): boolean {
+    let res: boolean = false;
+    this.state.state$.subscribe(state => {
+      res = state.user?.role === 'admin' ? true : false;
+    })
+
+    return res;
+  }
 }

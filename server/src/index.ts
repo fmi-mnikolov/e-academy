@@ -11,6 +11,7 @@ import authRouter from "./auth/auth-server";
 import userRouter from "./routes/user";
 import lessonRouter from './routes/lesson';
 import subjectRouter from './routes/subject';
+import mediaRouter from './routes/media';
 dotenv.config();
 
 /* CONFIGURATION */
@@ -24,14 +25,14 @@ app.use(morgan("common"));
 app.use(bodyParser.json({ limit: "30mb" }));
 app.use(bodyParser.urlencoded({ limit: "30mb", extended: true }));
 app.use(cors());
-app.use("/assets", express.static('public/assets'));
+app.use("/uploads/users/", express.static('../uploads/users'));
 
 app.use(express.json());
 app.use("/auth", authRouter);
 app.use("/users", userRouter);
 app.use("/lessons", lessonRouter);
 app.use("/subjects", subjectRouter);
-
+app.use("/media", mediaRouter);
 
 app.get("/", authenticate, (req: APIRequest, res: Response) => {
     return res.json(req.user);

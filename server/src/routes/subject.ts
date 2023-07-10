@@ -1,9 +1,10 @@
 import express from 'express';
 import { authenticate, authenticateAdmin } from '../middleware/auth';
 import SubjectDB, { Subject } from '../models/subject';
-import upload from '../storage/multer';
+import { uploadSubjectPicture } from '../storage/multer';
 import LessonDB from '../models/lesson';
 import TestDB from '../models/test';
+import path from 'path';
 
 const router = express.Router();
 
@@ -40,13 +41,13 @@ router.get("/:subjectId", authenticate, async (req, res) => {
 
 //POST
 
-router.post("/", authenticateAdmin, upload.fields([{ name: "picture" }]), async (req, res) => {
+router.post("/", authenticateAdmin, async (req, res) => {
     try {
-        const { name, picture } = req.body;
+        const { name } = req.body;
         let subject = new SubjectDB({
             name: name,
             lessons: [],
-            picture: picture
+            picture: ""
         });
         subject.save();
 
@@ -57,14 +58,15 @@ router.post("/", authenticateAdmin, upload.fields([{ name: "picture" }]), async 
 })
 
 //PUT
-router.put("/:id", authenticateAdmin, upload.fields([{ name: "picture" }]), async (req, res) => {
+router.put("/:id", authenticateAdmin, uploadSubjectPicture.fields([{ name: "picture" }]), async (req, res) => {
     try {
         const { name, picture } = req.body;
         const { id } = req.params;
+        let pictureName = `${name}_${path.basename(picture)}`;
         await SubjectDB.updateOne({ _id: id }, {
             name: name,
             lessons: [],
-            picture: picture
+            picture: pictureName
         });
 
         let subject: Subject = (await SubjectDB.findById(id))!.toObject() as Subject;

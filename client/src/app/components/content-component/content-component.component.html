@@ -1,0 +1,25 @@
+<div>
+    <form formGroupName="componentForm">
+        <div>
+            <label for="type">Type</label>
+            <select formControlName="type" (change)="updateType($event)">
+                <option [value]=null disabled>choose</option>
+                <option [value]="t" *ngFor="let t of getTypes()">{{t}}</option>
+            </select>
+        </div>
+        <div>
+            <label for="value">Value{{Ftype}}</label>
+            <input type="text" formControlName="value" *ngIf="Ftype && Ftype === 'TITLE'">
+            <input type="text" formControlName="value" *ngIf="Ftype && Ftype === 'DESCRIPTION'">
+            <input type="text" formControlName="value" *ngIf="Ftype && Ftype === 'TEXT'">
+            <input type="file" formControlName="value" *ngIf="Ftype && Ftype === 'IMAGE'"
+                (onChange)="uploadFile($event)">
+            <input type="file" formControlName="value" *ngIf="Ftype && Ftype === 'VIDEO'"
+                (onChange)="uploadFile($event)">
+            <input type="text" formControlName="value" *ngIf="Ftype && Ftype === 'CODE'">
+        </div>
+        <div>
+            <button (click)="save()">Save</button>
+        </div>
+    </form>
+</div>

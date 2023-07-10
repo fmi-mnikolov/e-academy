@@ -1,0 +1,18 @@
+<div class="lesson-window">
+    <div>
+        {{lesson.name}}
+    </div>
+    <div>
+        <div *ngFor="let c of lesson.content">
+            <div *ngIf="c.type === 'TITLE'">{{c.value}}</div>
+            <div *ngIf="c.type === 'DESCRIPTION'">{{c.value}}</div>
+            <div *ngIf="c.type === 'TEXT'">{{c.value}}</div>
+            <div *ngIf="c.type === 'IMAGE'"><img [src]="getFile(c.value)" alt=""></div>
+            <div *ngIf="c.type === 'VIDEO'"><video [src]="getFile(c.value)"></video></div>
+            <div *ngIf="c.type === 'CODE'">{{c.value}}</div>
+        </div>
+    </div>
+    <div>
+        <app-test [test]="t" *ngFor="let t of tests | async"></app-test>
+    </div>
+</div>

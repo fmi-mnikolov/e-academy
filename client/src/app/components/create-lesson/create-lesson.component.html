@@ -1,1 +1,31 @@
-<p>create-lesson works!</p>
+<div class="register-window">
+    <form [formGroup]="lessonForm" (submit)="onSubmit()">
+        <div>
+            <label for="name">Name</label>
+            <input type="text" formControlName="name">
+        </div>
+        <div>
+        </div>
+        <div>
+            <div *ngFor="let c of content">
+                <div *ngIf="c.type === 'TITLE'">{{c.value}}</div>
+                <div *ngIf="c.type === 'DESCRIPTION'">{{c.value}}</div>
+                <div *ngIf="c.type === 'TEXT'">{{c.value}}</div>
+                <div *ngIf="c.type === 'IMAGE'"><img [src]="getFile(c.value)" alt=""></div>
+                <div *ngIf="c.type === 'VIDEO'"><video [src]="getFile(c.value)"></video></div>
+                <div *ngIf="c.type === 'CODE'">{{c.value}}</div>
+            </div>
+            <app-content-component (saveEmitter)="updateContent($event)"
+                (filesEmitter)="updateFiles($event)"></app-content-component>
+        </div>
+        <div>
+            <label for="subjectId">SubjectId</label>
+            <select formControlName="subjectId" (change)="updateId($event)">
+                <option [value]="subject._id" *ngFor="let subject of subjects | async">{{subject._id}}</option>
+            </select>
+        </div>
+        <div>
+            <button type="submit">CreateLesson</button>
+        </div>
+    </form>
+</div>

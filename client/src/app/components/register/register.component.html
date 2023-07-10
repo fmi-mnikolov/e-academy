@@ -1,1 +1,23 @@
-<p>register works!</p>
+<div class="register-window">
+    <form [formGroup]="registerForm" (submit)="onSubmit()">
+        <div>
+            <label for="username">Username</label>
+            <input type="text" formControlName="username">
+        </div>
+        <div>
+            <label for="email">Email</label>
+            <input type="email" formControlName="email">
+        </div>
+        <div>
+            <label for="password">Password</label>
+            <input type="password" formControlName="password">
+        </div>
+        <div>
+            <label for="picturePath">ProfilePicture</label>
+            <input type="file" formControlName="picturePath" (change)="uploadFile($event)">
+        </div>
+        <div>
+            <button type="submit">Register</button>
+        </div>
+    </form>
+</div>

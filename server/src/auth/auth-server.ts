@@ -4,9 +4,10 @@ import * as jwt from "jsonwebtoken";
 import * as redis from "redis";
 import UserDB, { User } from '../models/user';
 import bcrypt from 'bcrypt';
-import upload from '../storage/multer';
+import { uploadProfilePicture } from '../storage/multer';
 import multer from 'multer';
 import { authenticate, authenticateAdmin } from '../middleware/auth';
+import path from 'path';
 dotenv.config();
 const router = express.Router();
 
@@ -121,14 +122,15 @@ router.post("/login", async (req: Request, res: Response) => {
         res.status(201).json({
             message: "Successfully logged in",
             accessToken: accessToken,
-            refreshToken: refreshToken
+            refreshToken: refreshToken,
+            user: user
         });
     } catch {
         res.status(500).json({ message: "An error occured while generating token. Try again..." });
     }
 });
 
-router.post("/register", upload.fields([{ name: "picture" }]), async (req: Request, res: Response) => {
+router.post("/register", uploadProfilePicture.fields([{ name: "picture" }]), async (req: Request, res: Response) => {
     let parsed: any;
     try {
         parsed = JSON.parse(req.body.json);
@@ -150,13 +152,14 @@ router.post("/register", upload.fields([{ name: "picture" }]), async (req: Reque
     let user: User;
 
     try {
+        let pictureName = `${username}_${path.basename(picturePath)}`;
         const salt = await bcrypt.genSalt();
         const hash = await bcrypt.hash(password, salt);
         user = {
             username: username,
             email: email,
             password: hash,
-            picturePath: picturePath,
+            picturePath: pictureName,
             role: "user",
             completedLessons: [],
             completedSubjects: [],
@@ -202,7 +205,7 @@ router.post("/register", upload.fields([{ name: "picture" }]), async (req: Reque
     }
 });
 
-router.post("/create", authenticateAdmin, upload.fields([{ name: "picture" }]), async (req: Request, res: Response) => {
+router.post("/create", authenticateAdmin, uploadProfilePicture.fields([{ name: "picture" }]), async (req: Request, res: Response) => {
     let parsed: any;
     try {
         parsed = JSON.parse(req.body.json);
@@ -225,6 +228,7 @@ router.post("/create", authenticateAdmin, upload.fields([{ name: "picture" }]), 
     let user: User;
 
     try {
+        let pictureName = `${username}_${path.basename(picturePath)}`;
         const salt = await bcrypt.genSalt();
         const hash = await bcrypt.hash(password, salt);
         user = {

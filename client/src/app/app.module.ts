@@ -14,6 +14,15 @@ import { CreateTestComponent } from './components/create-test/create-test.compon
 import { NavbarComponent } from './components/navbar/navbar.component';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
+import { LogoutComponent } from './components/logout/logout.component';
+import ContentComponentComponent from './components/content-component/content-component.component';
+import { SubjectsListComponent } from './components/subjects-list/subjects-list.component';
+import { LessonsListComponent } from './components/lessons-list/lessons-list.component';
+import { TestsListComponent } from './components/tests-list/tests-list.component';
+import { UserSubjectsListComponent } from './components/user-subjects-list/user-subjects-list.component';
+import { SubjectComponent } from './components/subject/subject.component';
+import { TestComponent } from './components/test/test.component';
+import { LessonComponent } from './components/lesson/lesson.component';
 
 @NgModule({
   declarations: [
@@ -24,7 +33,16 @@ import { CommonModule } from '@angular/common';
     CreateSubjectComponent,
     CreateLessonComponent,
     CreateTestComponent,
-    NavbarComponent
+    NavbarComponent,
+    LogoutComponent,
+    ContentComponentComponent,
+    SubjectsListComponent,
+    LessonsListComponent,
+    TestsListComponent,
+    UserSubjectsListComponent,
+    TestComponent,
+    LessonComponent,
+    SubjectComponent
   ],
   imports: [
     BrowserModule,
